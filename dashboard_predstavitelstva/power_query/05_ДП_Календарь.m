@@ -6,7 +6,7 @@
 // «МесяцИндекс» нужен мерам «предыдущий период» и «год назад».
 
 let
-    Даты = List.Distinct(ДП_Факт[Период]),
+    Даты = List.Buffer(List.Distinct(ДП_Факт[Период])),
     Мин = List.Min(Даты),
     Макс = List.Max(Даты),
     Кол = (Date.Year(Макс) - Date.Year(Мин)) * 12 + Date.Month(Макс) - Date.Month(Мин) + 1,

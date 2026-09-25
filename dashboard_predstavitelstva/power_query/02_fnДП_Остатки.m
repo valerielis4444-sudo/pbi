@@ -75,8 +75,9 @@ let
     Раскрыто = Table.ExpandTableColumn(Нужное, "Данные", {"Дата", "СуммаТг", "Представительство"}),
     Типы = Table.TransformColumnTypes(Раскрыто, {{"Дата", type date}, {"СуммаТг", type number}}),
     БезОшибок = Table.RemoveRowsWithErrors(Типы, {"Дата", "СуммаТг"}),
-    КонецМесяца = Table.SelectRows(БезОшибок, each [Дата] <> null and [СуммаТг] <> null
-        and Date.EndOfMonth([Дата]) = [Дата]),
+    // Table.Buffer — файлы читаются ОДИН раз, дальше работаем с копией в памяти
+    КонецМесяца = Table.Buffer(Table.SelectRows(БезОшибок, each [Дата] <> null and [СуммаТг] <> null
+        and Date.EndOfMonth([Дата]) = [Дата])),
 
     // один месяц = один файл: берём файл с самой поздней датой изменения
     ЛучшийФайл = Table.Group(КонецМесяца, {"Дата"}, {{"ЛучшийФайл", each
