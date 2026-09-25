@@ -469,3 +469,38 @@ Public Sub BuildRepDashboard()
         MsgBox "Готово, но эти пункты не получились — их нужно сделать вручную или прислать мне:" & vbLf & vbLf & LogText, vbExclamation
     End If
 End Sub
+
+' =====================================================================
+'  Косметические исправления после первого запуска (запускать отдельно)
+' =====================================================================
+Public Sub FixDashboard()
+    Dim ws As Worksheet, co As ChartObject, t As String, sep As String, pt As PivotTable
+    Set ws = ThisWorkbook.Worksheets("Дашборд_представительства")
+    sep = Application.International(xlDecimalSeparator)
+    On Error Resume Next
+    ' строки-пояснения под карточками: объединить на 2 столбца, чтобы текст помещался
+    ws.Range("F13:G13").Merge
+    ws.Range("L13:M13").Merge
+    ws.Range("N13:O13").Merge
+    ws.Range("F13,L13,N13").HorizontalAlignment = xlCenter
+    ' подписи и оси графиков
+    For Each co In ws.ChartObjects
+        t = co.Chart.ChartTitle.Text
+        If InStr(t, "излишек") > 0 Then
+            co.Chart.SeriesCollection(1).DataLabels.NumberFormat = "0"
+            co.Chart.Axes(xlValue).TickLabels.NumberFormat = "0"
+        ElseIf InStr(t, "перекосу") > 0 Then
+            co.Chart.SeriesCollection(1).DataLabels.NumberFormat = "+0" & sep & "0%"
+            co.Chart.Axes(xlValue).TickLabels.NumberFormat = "0" & sep & "0%"
+        End If
+    Next co
+    ' заголовки рейтинга — перенос по словам
+    Set pt = ws.PivotTables("П_Рейтинг")
+    With pt.TableRange1.Rows(1)
+        .WrapText = True
+        .VerticalAlignment = xlCenter
+        .RowHeight = 42
+    End With
+    On Error GoTo 0
+    MsgBox "Исправления внесены.", vbInformation
+End Sub
