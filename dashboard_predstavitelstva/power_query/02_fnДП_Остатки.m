@@ -74,7 +74,7 @@ let
     Нужное = Table.SelectColumns(Успешные, {"Name", "Date modified", "Данные"}),
     Раскрыто = Table.ExpandTableColumn(Нужное, "Данные", {"Дата", "СуммаТг", "Представительство"}),
     Типы = Table.TransformColumnTypes(Раскрыто, {{"Дата", type date}, {"СуммаТг", type number}}),
-    БезОшибок = Table.RemoveRowErrors(Типы, {"Дата", "СуммаТг"}),
+    БезОшибок = Table.RemoveRowsWithErrors(Типы, {"Дата", "СуммаТг"}),
     КонецМесяца = Table.SelectRows(БезОшибок, each [Дата] <> null and [СуммаТг] <> null
         and Date.EndOfMonth([Дата]) = [Дата]),
 
