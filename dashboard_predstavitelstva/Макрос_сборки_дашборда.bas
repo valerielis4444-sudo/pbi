@@ -504,3 +504,41 @@ Public Sub FixDashboard()
     On Error GoTo 0
     MsgBox "Исправления внесены.", vbInformation
 End Sub
+
+' =====================================================================
+'  Дополнения: GMROI, стоимость излишка, неликвид (запускать после создания 5 новых мер)
+' =====================================================================
+Public Sub AddExtras()
+    Dim ws As Worksheet, ptK As PivotTable, ptR As PivotTable, m, TG As String, gp As String
+    Set ws = ThisWorkbook.Worksheets("Дашборд_представительства")
+    Set ptK = ThisWorkbook.Worksheets("ДП_Своды").PivotTables("П_KPI")
+    Set ptR = ws.PivotTables("П_Рейтинг")
+    TG = ChrW(8376)
+    On Error Resume Next
+    For Each m In Array("GMROI", "Стоимость излишка млн", "Неликвид млн")
+        ptK.CubeFields("[Measures].[" & m & "]").Orientation = xlDataField
+    Next m
+    gp = "'ДП_Своды'!$A$3"
+    ws.Range("H13:I13").Merge
+    ws.Range("J13:K13").Merge
+    ws.Range("H13,J13").HorizontalAlignment = xlCenter
+    ws.Range("H13").Formula = "=IFERROR(GETPIVOTDATA(""[Measures].[GMROI]""," & gp & "),"""")"
+    ws.Range("H13").NumberFormat = """GMROI ""0.00"" " & TG & " маржи на 1 " & TG & " запасов"""
+    ws.Range("J13").Formula = "=IFERROR(GETPIVOTDATA(""[Measures].[Неликвид млн]""," & gp & "),"""")"
+    ws.Range("J13").NumberFormat = "[Red]""в т.ч. неликвид ""#,##0.0"" млн"";[Red]""в т.ч. неликвид ""#,##0.0"" млн"";""неликвида нет"""
+    ws.Range("N10").Value = "Излишек сверх цели DIO, млн " & TG
+    ws.Range("N13").Formula = "=IFERROR(GETPIVOTDATA(""[Measures].[Стоимость излишка млн]""," & gp & "),"""")"
+    ws.Range("N13").NumberFormat = """стоит ~""#,##0.0"" млн " & TG & " в месяц"""
+    ws.Range("H13,J13,N13").Font.Size = 9
+    ' GMROI в рейтинг — сразу после «Маржа»
+    ptR.CubeFields("[Measures].[GMROI]").Orientation = xlDataField
+    With ptR.DataFields(ptR.DataFields.Count)
+        .NumberFormat = "0.00"
+        .Position = 6
+    End With
+    If Err.Number <> 0 Then
+        MsgBox "Что-то не получилось: " & Err.Description, vbExclamation
+    Else
+        MsgBox "Готово: GMROI, стоимость излишка и неликвид добавлены.", vbInformation
+    End If
+End Sub
