@@ -14,7 +14,9 @@ let
             {Cube.AddMeasureColumn, "Сумма в уч. ценах", "[Measures].[Сумма в уч. ценах]"}
         }),
     СДатой = Table.AddColumn(Куб, "Дата", each
-        try Date.From([ДатаТекст]) otherwise (try Date.FromText(Text.From([ДатаТекст]), "en-US") otherwise null), type nullable date),
+        if [ДатаТекст] = null then null
+        else if Value.Is([ДатаТекст], type text) then (try Date.FromText([ДатаТекст], "en-US") otherwise null)
+        else (try Date.From([ДатаТекст]) otherwise null), type nullable date),
     Буфер = Table.Buffer(СДатой),
     ДатыВКубе = List.Sort(List.Distinct(List.RemoveNulls(Буфер[Дата]))),
     Отбор = Table.SelectRows(Буфер, each [Дата] = ДатаОтчета),

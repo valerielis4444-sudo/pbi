@@ -37,7 +37,9 @@ Private Function QM1() As String
     s = s & "            {Cube.AddMeasureColumn, ""Сумма в уч. ценах"", ""[Measures].[Сумма в уч. ценах]""}" & vbLf
     s = s & "        })," & vbLf
     s = s & "    СДатой = Table.AddColumn(Куб, ""Дата"", each" & vbLf
-    s = s & "        try Date.From([ДатаТекст]) otherwise (try Date.FromText(Text.From([ДатаТекст]), ""en-US"") otherwise null), type nullable date)," & vbLf
+    s = s & "        if [ДатаТекст] = null then null" & vbLf
+    s = s & "        else if Value.Is([ДатаТекст], type text) then (try Date.FromText([ДатаТекст], ""en-US"") otherwise null)" & vbLf
+    s = s & "        else (try Date.From([ДатаТекст]) otherwise null), type nullable date)," & vbLf
     s = s & "    Буфер = Table.Buffer(СДатой)," & vbLf
     s = s & "    ДатыВКубе = List.Sort(List.Distinct(List.RemoveNulls(Буфер[Дата])))," & vbLf
     s = s & "    Отбор = Table.SelectRows(Буфер, each [Дата] = ДатаОтчета)," & vbLf
