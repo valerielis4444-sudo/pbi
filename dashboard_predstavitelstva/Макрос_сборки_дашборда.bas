@@ -542,3 +542,51 @@ Public Sub AddExtras()
         MsgBox "Готово: GMROI, стоимость излишка и неликвид добавлены.", vbInformation
     End If
 End Sub
+
+' =====================================================================
+'  По замечанию наставника: в рейтинг добавлены «Себестоимость» и «Дней»,
+'  чтобы DIO можно было проверить по строке: Ср. запасы × Дней ÷ Себестоимость
+' =====================================================================
+Public Sub AddCogsToRating()
+    Dim wb As Workbook, pt As PivotTable, t As Object, df As PivotField, posDIO As Long, ws As Worksheet
+    Set wb = ThisWorkbook
+    Set ws = wb.Worksheets("Дашборд_представительства")
+    On Error Resume Next
+    ' мера «Себестоимость млн» (если уже есть — просто пропускается)
+    Set t = wb.Model.ModelTables("ДП_Факт")
+    wb.Model.ModelMeasures.Add "Себестоимость млн", t, "DIVIDE([Себестоимость];1000000)", wb.Model.ModelFormatDecimalNumber(True, 1)
+    If Err.Number <> 0 Then
+        Err.Clear
+        wb.Model.ModelMeasures.Add "Себестоимость млн", t, "DIVIDE([Себестоимость],1000000)", wb.Model.ModelFormatDecimalNumber(True, 1)
+    End If
+    Err.Clear
+    On Error GoTo Fail
+    Set pt = ws.PivotTables("П_Рейтинг")
+    ' Себестоимость — сразу после выручки
+    pt.CubeFields("[Measures].[Себестоимость млн]").Orientation = xlDataField
+    With pt.DataFields(pt.DataFields.Count)
+        .Caption = "Себестоимость, млн " & ChrW(8376)
+        .NumberFormat = "#,##0.0"
+        .Position = 3
+    End With
+    ' Дней — прямо перед DIO
+    pt.CubeFields("[Measures].[Дней в периоде]").Orientation = xlDataField
+    With pt.DataFields(pt.DataFields.Count)
+        .Caption = "Дней"
+        .NumberFormat = "0"
+    End With
+    For Each df In pt.DataFields
+        If df.Caption = "DIO, дн." Then posDIO = df.Position
+    Next df
+    If posDIO > 0 Then pt.DataFields(pt.DataFields.Count).Position = posDIO
+    ws.Columns("R:T").ColumnWidth = 11
+    With pt.TableRange1.Rows(1)
+        .WrapText = True
+        .VerticalAlignment = xlCenter
+    End With
+    MsgBox "Готово: в рейтинг добавлены «Себестоимость» и «Дней»." & vbLf & _
+           "Проверка по любой строке: Ср. запасы × Дней ÷ Себестоимость = DIO.", vbInformation
+    Exit Sub
+Fail:
+    MsgBox "Не получилось: " & Err.Description, vbExclamation
+End Sub
