@@ -25,7 +25,7 @@ Public Sub BuildCurrent()
     For i = wb.Connections.Count To 1 Step -1
         If InStr(wb.Connections(i).Name, "Тек_") > 0 Then wb.Connections(i).Delete
     Next i
-    For Each qn In Array("Тек_Итог", "Тек_Продажи", "fnТек_Остатки", "Тек_Параметры")
+    For Each qn In Array("Тек_Итог", "Тек_Продажи", "Тек_Остатки", "fnТек_Остатки", "Тек_Параметры")
         wb.Queries(qn).Delete
     Next qn
     Err.Clear
@@ -42,7 +42,7 @@ Public Sub BuildCurrent()
     ws.Columns("A").ColumnWidth = 2
     ws.Columns("B").ColumnWidth = 32
     ws.Columns("C").ColumnWidth = 18
-    ws.Columns("D:M").ColumnWidth = 14
+    ws.Columns("D:N").ColumnWidth = 14
     ws.Range("B2").Value = "ТЕКУЩАЯ ОБОРАЧИВАЕМОСТЬ ЗАПАСОВ ПО ПРЕДСТАВИТЕЛЬСТВАМ — МЕСЯЦ НА ДАТУ"
     ws.Range("B2").Font.Size = 18
     ws.Range("B2").Font.Bold = True
@@ -61,7 +61,7 @@ Public Sub BuildCurrent()
 
     ' ---------- запросы ----------
     wb.Queries.Add "Тек_Параметры", QM0()
-    wb.Queries.Add "fnТек_Остатки", QM1()
+    wb.Queries.Add "Тек_Остатки", QM1()
     wb.Queries.Add "Тек_Продажи", QM2()
     wb.Queries.Add "Тек_Итог", QM3()
     Chk "создание запросов"
@@ -80,12 +80,12 @@ Public Sub BuildCurrent()
         .ListObject.DisplayName = "Тек_Итог"
         .Refresh BackgroundQuery:=False
     End With
-    Chk "загрузка таблицы (если ошибка про остатки — нет файла остатков на отчётную дату)"
+    Chk "загрузка таблицы (если в тексте ошибки «нет даты» — поставьте в B5 дату, которая есть в кубе остатков)"
     Set lo = ws.ListObjects("Тек_Итог")
     lo.TableStyle = "TableStyleMedium2"
-    fmts = Array("", "", "#,##0.0", "#,##0.0", "#,##0.0", "0", "0.0", "#,##0.0", "#,##0.0", "0", "0.0", "+0.0;-0.0;0.0")
+    fmts = Array("", "", "#,##0.0", "#,##0.0", "#,##0.0", "#,##0", "0", "0.0", "#,##0.0", "#,##0.0", "0", "0.0", "+0.0;-0.0;0.0")
     For i = 1 To lo.ListColumns.Count
-        If i <= 12 Then If fmts(i - 1) <> "" Then lo.ListColumns(i).Range.NumberFormat = fmts(i - 1)
+        If i <= 13 Then If fmts(i - 1) <> "" Then lo.ListColumns(i).Range.NumberFormat = fmts(i - 1)
     Next i
     lo.HeaderRowRange.WrapText = True
     lo.HeaderRowRange.RowHeight = 45
@@ -146,10 +146,10 @@ Public Sub BuildCurrent()
     ws.Range("B7").Value = "Как считается"
     ws.Range("B7").Font.Bold = True
     ws.Range("B8").Value = "DIO на дату = остаток на дату " & ChrW(215) & " число дней с 1-го числа " & ChrW(247) & " себестоимость с 1-го числа."
-    ws.Range("B9").Value = "Остаток = склад + товар в пути, в учётных ценах. Итоги считаются по видимым строкам (учитывают фильтр таблицы)."
+    ws.Range("B9").Value = "Остаток на дату — из OLAP (куб Remainder_V1), сумма в учётных ценах; штуки — для справки, в расчёт не входят. Прошлый месяц — остатки на складах на конец месяца. Итоги — по видимым строкам."
     ws.Range("B8:B9").WrapText = True
     ws.Range("B8:B9").Font.Size = 9
-    ws.Rows("8:9").RowHeight = 30
+    ws.Rows("8:9").RowHeight = 45
     Chk "карточки"
 
     ws.Activate

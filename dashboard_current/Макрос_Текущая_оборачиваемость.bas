@@ -24,84 +24,34 @@ End Function
 
 Private Function QM1() As String
     Dim s As String
-    s = s & "(СловоВИмениФайла as text, ДатаОтчета as date) as table =>" & vbLf
     s = s & "let" & vbLf
-    s = s & "    ПапкаИсточник = ""C:\Users\v.lis\Desktop\ФинЦикл\Расчёт и анализ ФЦ\Запасы""," & vbLf
-    s = s & "    Источник = Folder.Files(ПапкаИсточник)," & vbLf
-    s = s & "    БезВременных = Table.SelectRows(Источник, each not Text.StartsWith([Name], ""~$""))," & vbLf
-    s = s & "    Файлы = Table.SelectRows(БезВременных, each Text.Contains(Text.Lower([Name]), СловоВИмениФайла)" & vbLf
-    s = s & "        and (Text.EndsWith(Text.Lower([Name]), "".xlsx"") or Text.EndsWith(Text.Lower([Name]), "".xls"")))," & vbLf
-    s = s & "" & vbLf
-    s = s & "    Норм = (t as any) as text => Text.Replace(Text.Lower(if t = null then """" else Text.From(t)), ""ё"", ""е"")," & vbLf
-    s = s & "" & vbLf
-    s = s & "    ВыбратьЛист = (bookContent as binary, словоШапки as text) as table =>" & vbLf
-    s = s & "        let" & vbLf
-    s = s & "            Книга = Excel.Workbook(bookContent, true)," & vbLf
-    s = s & "            Проверить = (data as table) as nullable table =>" & vbLf
-    s = s & "                let" & vbLf
-    s = s & "                    ДостаточноСтолбцов = Table.ColumnCount(data) >= 5," & vbLf
-    s = s & "                    ЕстьСразу = ДостаточноСтолбцов and List.AnyTrue(List.Transform(Table.ColumnNames(data), each Text.Contains(Норм(_), словоШапки)))," & vbLf
-    s = s & "                    ПослеПромо = if ЕстьСразу or not ДостаточноСтолбцов then null else (try Table.PromoteHeaders(data, [PromoteAllScalars = true]) otherwise null)," & vbLf
-    s = s & "                    ЕстьПослеПромо = if ПослеПромо = null then false" & vbLf
-    s = s & "                        else List.AnyTrue(List.Transform(Table.ColumnNames(ПослеПромо), each Text.Contains(Норм(_), словоШапки)))" & vbLf
-    s = s & "                in" & vbLf
-    s = s & "                    if ЕстьСразу then data" & vbLf
-    s = s & "                    else if ЕстьПослеПромо then ПослеПромо" & vbLf
-    s = s & "                    else null," & vbLf
-    s = s & "            СПроверкой = Table.AddColumn(Книга, ""Checked"", each try Проверить([Data]) otherwise null)," & vbLf
-    s = s & "            Подходящие = Table.SelectRows(СПроверкой, each [Checked] <> null)," & vbLf
-    s = s & "            Результат = if Table.RowCount(Подходящие) = 0" & vbLf
-    s = s & "                then error (""Не найден лист со столбцом, содержащим: "" & словоШапки)" & vbLf
-    s = s & "                else Подходящие{0}[Checked]" & vbLf
-    s = s & "        in" & vbLf
-    s = s & "            Результат," & vbLf
-    s = s & "" & vbLf
-    s = s & "    НайтиСтолбец = (t as table, содержит as list) as text =>" & vbLf
-    s = s & "        let" & vbLf
-    s = s & "            Совпадения = List.Select(Table.ColumnNames(t), each" & vbLf
-    s = s & "                let низ = Норм(_) in List.AllTrue(List.Transform(содержит, each Text.Contains(низ, _))))," & vbLf
-    s = s & "            Результат = if List.Count(Совпадения) > 0 then Совпадения{0}" & vbLf
-    s = s & "                else error (""Столбец не найден: "" & Text.Combine(содержит, ""+"") & "". Реальные столбцы: "" & Text.Combine(Table.ColumnNames(t), "" | ""))" & vbLf
-    s = s & "        in" & vbLf
-    s = s & "            Результат," & vbLf
-    s = s & "" & vbLf
-    s = s & "    ЧитатьКнигу = (Содержимое as binary) as table =>" & vbLf
-    s = s & "        let" & vbLf
-    s = s & "            Лист = ВыбратьЛист(Содержимое, ""дата"")," & vbLf
-    s = s & "            СтДата = НайтиСтолбец(Лист, {""дата""})," & vbLf
-    s = s & "            СтСумма = НайтиСтолбец(Лист, {""сумма"", ""уц""})," & vbLf
-    s = s & "            СтПредст = try НайтиСтолбец(Лист, {""представительств""}) otherwise null," & vbLf
-    s = s & "            Выбрано = if СтПредст = null" & vbLf
-    s = s & "                then Table.AddColumn(Table.SelectColumns(Лист, {СтДата, СтСумма}), ""Представительство"", each null)" & vbLf
-    s = s & "                else Table.SelectColumns(Лист, {СтДата, СтСумма, СтПредст})," & vbLf
-    s = s & "            Переименовано = Table.RenameColumns(Выбрано, List.RemoveNulls({" & vbLf
-    s = s & "                {СтДата, ""Дата""}, {СтСумма, ""СуммаТг""}," & vbLf
-    s = s & "                if СтПредст = null then null else {СтПредст, ""Представительство""}}))" & vbLf
-    s = s & "        in" & vbLf
-    s = s & "            Переименовано," & vbLf
-    s = s & "" & vbLf
-    s = s & "    СДанными = Table.AddColumn(Файлы, ""Данные"", each try ЧитатьКнигу([Content]) otherwise null)," & vbLf
-    s = s & "    Успешные = Table.SelectRows(СДанными, each [Данные] <> null)," & vbLf
-    s = s & "    Нужное = Table.SelectColumns(Успешные, {""Name"", ""Date modified"", ""Данные""})," & vbLf
-    s = s & "    Раскрыто = Table.ExpandTableColumn(Нужное, ""Данные"", {""Дата"", ""СуммаТг"", ""Представительство""})," & vbLf
-    s = s & "    Типы = Table.TransformColumnTypes(Раскрыто, {{""Дата"", type date}, {""СуммаТг"", type number}})," & vbLf
-    s = s & "    БезОшибок = Table.RemoveRowsWithErrors(Типы, {""Дата"", ""СуммаТг""})," & vbLf
-    s = s & "    КонецМесяца = Table.Buffer(Table.SelectRows(БезОшибок, each [Дата] <> null and [СуммаТг] <> null" & vbLf
-    s = s & "        and [Дата] = ДатаОтчета))," & vbLf
-    s = s & "" & vbLf
-    s = s & "    ЛучшийФайл = Table.Group(КонецМесяца, {""Дата""}, {{""ЛучшийФайл"", each" & vbLf
-    s = s & "        Table.First(Table.Sort(Table.Distinct(Table.SelectColumns(_, {""Name"", ""Date modified""}))," & vbLf
-    s = s & "            {{""Date modified"", Order.Descending}}))[Name], type text}})," & vbLf
-    s = s & "    Соединено = Table.NestedJoin(КонецМесяца, {""Дата""}, ЛучшийФайл, {""Дата""}, ""Л"", JoinKind.Inner)," & vbLf
-    s = s & "    СФайлом = Table.ExpandTableColumn(Соединено, ""Л"", {""ЛучшийФайл""})," & vbLf
-    s = s & "    ОдинФайл = Table.SelectRows(СФайлом, each [Name] = [ЛучшийФайл])," & vbLf
-    s = s & "" & vbLf
-    s = s & "    ИменаЧистые = Table.TransformColumns(ОдинФайл, {{""Представительство"", each" & vbLf
+    s = s & "    ДатаОтчета = Тек_Параметры," & vbLf
+    s = s & "    Источник = AnalysisServices.Database(""GEFEST"", ""Remainder_V1"", [Culture = ""en-US""])," & vbLf
+    s = s & "    Модель = Источник{[Id = ""Модель""]}[Data]," & vbLf
+    s = s & "    Модель1 = Модель{[Id = ""Модель""]}[Data]," & vbLf
+    s = s & "    Куб = Cube.Transform(Модель1," & vbLf
+    s = s & "        {" & vbLf
+    s = s & "            {Cube.AddAndExpandDimensionColumn, ""[Номенклатор]"", {""[Номенклатор].[Представительство].[Представительство]""}, {""Представительство""}}," & vbLf
+    s = s & "            {Cube.AddAndExpandDimensionColumn, ""[Период]"", {""[Период].[Дата].[Дата]""}, {""ДатаТекст""}}," & vbLf
+    s = s & "            {Cube.AddMeasureColumn, ""Количество"", ""[Measures].[Количество]""}," & vbLf
+    s = s & "            {Cube.AddMeasureColumn, ""Сумма в уч. ценах"", ""[Measures].[Сумма в уч. ценах]""}" & vbLf
+    s = s & "        })," & vbLf
+    s = s & "    СДатой = Table.AddColumn(Куб, ""Дата"", each" & vbLf
+    s = s & "        try Date.From([ДатаТекст]) otherwise (try Date.FromText(Text.From([ДатаТекст]), ""en-US"") otherwise null), type nullable date)," & vbLf
+    s = s & "    Буфер = Table.Buffer(СДатой)," & vbLf
+    s = s & "    ДатыВКубе = List.Sort(List.Distinct(List.RemoveNulls(Буфер[Дата])))," & vbLf
+    s = s & "    Отбор = Table.SelectRows(Буфер, each [Дата] = ДатаОтчета)," & vbLf
+    s = s & "    Проверено = if Table.RowCount(Отбор) = 0" & vbLf
+    s = s & "        then error (""В кубе остатков нет даты "" & Date.ToText(ДатаОтчета) & "". Есть даты: """ & vbLf
+    s = s & "            & Text.Combine(List.Transform(ДатыВКубе, Date.ToText), "", "") & "". Поставьте одну из них в ячейку B5."")" & vbLf
+    s = s & "        else Отбор," & vbLf
+    s = s & "    ИменаЧистые = Table.TransformColumns(Проверено, {{""Представительство"", each" & vbLf
     s = s & "        if _ = null or Text.Trim(Text.From(_)) = """" then ""(без представительства)"" else Text.Trim(Text.From(_)), type text}})," & vbLf
-    s = s & "    Итог = Table.Group(ИменаЧистые, {""Дата"", ""Представительство""}, {{""СуммаТг"", each List.Sum([СуммаТг]), type number}})," & vbLf
-    s = s & "    Результат = Table.RenameColumns(Итог, {{""Дата"", ""Период""}})" & vbLf
+    s = s & "    Итог = Table.Group(ИменаЧистые, {""Представительство""}, {" & vbLf
+    s = s & "        {""СуммаТг"", each List.Sum([Сумма в уч. ценах]), type number}," & vbLf
+    s = s & "        {""КоличествоШт"", each List.Sum([Количество]), type number}})" & vbLf
     s = s & "in" & vbLf
-    s = s & "    Результат" & vbLf
+    s = s & "    Итог" & vbLf
     QM1 = s
 End Function
 
@@ -145,22 +95,22 @@ Private Function QM3() As String
     s = s & "    ДнейПМ = Date.Day(ПредМес)," & vbLf
     s = s & "" & vbLf
     s = s & "    Пр = Тек_Продажи," & vbLf
-    s = s & "    Скл = fnТек_Остатки(""остатки"", Дата)," & vbLf
-    s = s & "    Пут = fnТек_Остатки(""товар в пути"", Дата)," & vbLf
+    s = s & "    Скл = Тек_Остатки," & vbLf
     s = s & "    Ф = Table.SelectRows(ДП_Факт, each [Период] = ПредМес)," & vbLf
     s = s & "" & vbLf
     s = s & "    Доб = (t as table, имена as list) as table =>" & vbLf
     s = s & "        List.Accumulate(имена, t, (s, n) => if Table.HasColumns(s, n) then s else Table.AddColumn(s, n, each 0, type number))," & vbLf
-    s = s & "    Все = {""ВыручкаТг"", ""СебестоимостьТг"", ""ОстатокТг"", ""СебПредТг"", ""ЗапПредТг""}," & vbLf
+    s = s & "    Все = {""ВыручкаТг"", ""СебестоимостьТг"", ""ОстатокТг"", ""ОстатокШт"", ""СебПредТг"", ""ЗапПредТг""}," & vbLf
     s = s & "    A = Доб(Table.SelectColumns(Пр, {""Представительство"", ""ВыручкаТг"", ""СебестоимостьТг""}), Все)," & vbLf
-    s = s & "    B = Доб(Table.RenameColumns(Table.SelectColumns(Скл, {""Представительство"", ""СуммаТг""}), {{""СуммаТг"", ""ОстатокТг""}}), Все)," & vbLf
-    s = s & "    C = Доб(Table.RenameColumns(Table.SelectColumns(Пут, {""Представительство"", ""СуммаТг""}), {{""СуммаТг"", ""ОстатокТг""}}), Все)," & vbLf
-    s = s & "    D = Доб(Table.RenameColumns(Table.SelectColumns(Ф, {""Представительство"", ""СебестоимостьТг"", ""ЗапасыТг""})," & vbLf
-    s = s & "            {{""СебестоимостьТг"", ""СебПредТг""}, {""ЗапасыТг"", ""ЗапПредТг""}}), Все)," & vbLf
-    s = s & "    Сумма = Table.Group(Table.Combine({A, B, C, D}), {""Представительство""}, {" & vbLf
+    s = s & "    B = Доб(Table.RenameColumns(Table.SelectColumns(Скл, {""Представительство"", ""СуммаТг"", ""КоличествоШт""})," & vbLf
+    s = s & "            {{""СуммаТг"", ""ОстатокТг""}, {""КоличествоШт"", ""ОстатокШт""}}), Все)," & vbLf
+    s = s & "    D = Доб(Table.RenameColumns(Table.SelectColumns(Ф, {""Представительство"", ""СебестоимостьТг"", ""ЗапасыСкладТг""})," & vbLf
+    s = s & "            {{""СебестоимостьТг"", ""СебПредТг""}, {""ЗапасыСкладТг"", ""ЗапПредТг""}}), Все)," & vbLf
+    s = s & "    Сумма = Table.Group(Table.Combine({A, B, D}), {""Представительство""}, {" & vbLf
     s = s & "        {""ВыручкаТг"", each List.Sum([ВыручкаТг]), type number}," & vbLf
     s = s & "        {""СебестоимостьТг"", each List.Sum([СебестоимостьТг]), type number}," & vbLf
     s = s & "        {""ОстатокТг"", each List.Sum([ОстатокТг]), type number}," & vbLf
+    s = s & "        {""ОстатокШт"", each List.Sum([ОстатокШт]), type number}," & vbLf
     s = s & "        {""СебПредТг"", each List.Sum([СебПредТг]), type number}," & vbLf
     s = s & "        {""ЗапПредТг"", each List.Sum([ЗапПредТг]), type number}})," & vbLf
     s = s & "    Непустые = Table.SelectRows(Сумма, each [ВыручкаТг] <> 0 or [СебестоимостьТг] <> 0 or [ОстатокТг] <> 0)," & vbLf
@@ -172,6 +122,7 @@ Private Function QM3() As String
     s = s & "        #""Выручка с 1-го числа, млн тг"" = [ВыручкаТг] / 1000000," & vbLf
     s = s & "        #""Себестоимость с 1-го числа, млн тг"" = [СебестоимостьТг] / 1000000," & vbLf
     s = s & "        #""Остаток на дату, млн тг"" = [ОстатокТг] / 1000000," & vbLf
+    s = s & "        #""Остаток на дату, шт."" = [ОстатокШт]," & vbLf
     s = s & "        #""Дней"" = ДнейМес," & vbLf
     s = s & "        #""DIO на дату"" = if [СебестоимостьТг] > 0 then [ОстатокТг] * ДнейМес / [СебестоимостьТг] else null," & vbLf
     s = s & "        #""Себестоимость пред. месяца, млн тг"" = [СебПредТг] / 1000000," & vbLf
@@ -180,16 +131,16 @@ Private Function QM3() As String
     s = s & "        #""DIO пред. месяца"" = if [СебПредТг] > 0 then [ЗапПредТг] * ДнейПМ / [СебПредТг] else null" & vbLf
     s = s & "    ])," & vbLf
     s = s & "    Раскрыто = Table.ExpandRecordColumn(Р, ""Итог"", {""Выручка с 1-го числа, млн тг"", ""Себестоимость с 1-го числа, млн тг""," & vbLf
-    s = s & "        ""Остаток на дату, млн тг"", ""Дней"", ""DIO на дату"", ""Себестоимость пред. месяца, млн тг""," & vbLf
+    s = s & "        ""Остаток на дату, млн тг"", ""Остаток на дату, шт."", ""Дней"", ""DIO на дату"", ""Себестоимость пред. месяца, млн тг""," & vbLf
     s = s & "        ""Остаток на конец пред. месяца, млн тг"", ""Дней пред. месяца"", ""DIO пред. месяца""})," & vbLf
     s = s & "    Изм = Table.AddColumn(Раскрыто, ""Изменение DIO"", each" & vbLf
     s = s & "        if [DIO на дату] <> null and [DIO пред. месяца] <> null then [DIO на дату] - [DIO пред. месяца] else null)," & vbLf
     s = s & "    Выбор = Table.SelectColumns(Изм, {""Представительство"", ""Класс ABC"", ""Выручка с 1-го числа, млн тг"", ""Себестоимость с 1-го числа, млн тг""," & vbLf
-    s = s & "        ""Остаток на дату, млн тг"", ""Дней"", ""DIO на дату"", ""Себестоимость пред. месяца, млн тг""," & vbLf
+    s = s & "        ""Остаток на дату, млн тг"", ""Остаток на дату, шт."", ""Дней"", ""DIO на дату"", ""Себестоимость пред. месяца, млн тг""," & vbLf
     s = s & "        ""Остаток на конец пред. месяца, млн тг"", ""Дней пред. месяца"", ""DIO пред. месяца"", ""Изменение DIO""})," & vbLf
     s = s & "    Типы = Table.TransformColumnTypes(Выбор, {{""Представительство"", type text}, {""Класс ABC"", type text}," & vbLf
     s = s & "        {""Выручка с 1-го числа, млн тг"", type number}, {""Себестоимость с 1-го числа, млн тг"", type number}," & vbLf
-    s = s & "        {""Остаток на дату, млн тг"", type number}, {""Дней"", Int64.Type}, {""DIO на дату"", type number}," & vbLf
+    s = s & "        {""Остаток на дату, млн тг"", type number}, {""Остаток на дату, шт."", type number}, {""Дней"", Int64.Type}, {""DIO на дату"", type number}," & vbLf
     s = s & "        {""Себестоимость пред. месяца, млн тг"", type number}, {""Остаток на конец пред. месяца, млн тг"", type number}," & vbLf
     s = s & "        {""Дней пред. месяца"", Int64.Type}, {""DIO пред. месяца"", type number}, {""Изменение DIO"", type number}})," & vbLf
     s = s & "    Сорт = Table.Sort(Типы, {{""Выручка с 1-го числа, млн тг"", Order.Descending}})" & vbLf
@@ -210,7 +161,7 @@ Public Sub BuildCurrent()
     For i = wb.Connections.Count To 1 Step -1
         If InStr(wb.Connections(i).Name, "Тек_") > 0 Then wb.Connections(i).Delete
     Next i
-    For Each qn In Array("Тек_Итог", "Тек_Продажи", "fnТек_Остатки", "Тек_Параметры")
+    For Each qn In Array("Тек_Итог", "Тек_Продажи", "Тек_Остатки", "fnТек_Остатки", "Тек_Параметры")
         wb.Queries(qn).Delete
     Next qn
     Err.Clear
@@ -227,7 +178,7 @@ Public Sub BuildCurrent()
     ws.Columns("A").ColumnWidth = 2
     ws.Columns("B").ColumnWidth = 32
     ws.Columns("C").ColumnWidth = 18
-    ws.Columns("D:M").ColumnWidth = 14
+    ws.Columns("D:N").ColumnWidth = 14
     ws.Range("B2").Value = "ТЕКУЩАЯ ОБОРАЧИВАЕМОСТЬ ЗАПАСОВ ПО ПРЕДСТАВИТЕЛЬСТВАМ — МЕСЯЦ НА ДАТУ"
     ws.Range("B2").Font.Size = 18
     ws.Range("B2").Font.Bold = True
@@ -246,7 +197,7 @@ Public Sub BuildCurrent()
 
     ' ---------- запросы ----------
     wb.Queries.Add "Тек_Параметры", QM0()
-    wb.Queries.Add "fnТек_Остатки", QM1()
+    wb.Queries.Add "Тек_Остатки", QM1()
     wb.Queries.Add "Тек_Продажи", QM2()
     wb.Queries.Add "Тек_Итог", QM3()
     Chk "создание запросов"
@@ -265,12 +216,12 @@ Public Sub BuildCurrent()
         .ListObject.DisplayName = "Тек_Итог"
         .Refresh BackgroundQuery:=False
     End With
-    Chk "загрузка таблицы (если ошибка про остатки — нет файла остатков на отчётную дату)"
+    Chk "загрузка таблицы (если в тексте ошибки «нет даты» — поставьте в B5 дату, которая есть в кубе остатков)"
     Set lo = ws.ListObjects("Тек_Итог")
     lo.TableStyle = "TableStyleMedium2"
-    fmts = Array("", "", "#,##0.0", "#,##0.0", "#,##0.0", "0", "0.0", "#,##0.0", "#,##0.0", "0", "0.0", "+0.0;-0.0;0.0")
+    fmts = Array("", "", "#,##0.0", "#,##0.0", "#,##0.0", "#,##0", "0", "0.0", "#,##0.0", "#,##0.0", "0", "0.0", "+0.0;-0.0;0.0")
     For i = 1 To lo.ListColumns.Count
-        If i <= 12 Then If fmts(i - 1) <> "" Then lo.ListColumns(i).Range.NumberFormat = fmts(i - 1)
+        If i <= 13 Then If fmts(i - 1) <> "" Then lo.ListColumns(i).Range.NumberFormat = fmts(i - 1)
     Next i
     lo.HeaderRowRange.WrapText = True
     lo.HeaderRowRange.RowHeight = 45
@@ -331,10 +282,10 @@ Public Sub BuildCurrent()
     ws.Range("B7").Value = "Как считается"
     ws.Range("B7").Font.Bold = True
     ws.Range("B8").Value = "DIO на дату = остаток на дату " & ChrW(215) & " число дней с 1-го числа " & ChrW(247) & " себестоимость с 1-го числа."
-    ws.Range("B9").Value = "Остаток = склад + товар в пути, в учётных ценах. Итоги считаются по видимым строкам (учитывают фильтр таблицы)."
+    ws.Range("B9").Value = "Остаток на дату — из OLAP (куб Remainder_V1), сумма в учётных ценах; штуки — для справки, в расчёт не входят. Прошлый месяц — остатки на складах на конец месяца. Итоги — по видимым строкам."
     ws.Range("B8:B9").WrapText = True
     ws.Range("B8:B9").Font.Size = 9
-    ws.Rows("8:9").RowHeight = 30
+    ws.Rows("8:9").RowHeight = 45
     Chk "карточки"
 
     ws.Activate
